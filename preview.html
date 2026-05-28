@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>結果プレビュー一覧 | TIME診断</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── デザイントークン（index.htmlと同じ） ── */
+    :root {
+      --navy:    #1A3F78;
+      --navy-hi: #1E5099;
+      --teal:    #1A9CB5;
+      --teal-hi: #22B8D0;
+      --gold:    #C4983A;
+      --gold-hi: #D4AE52;
+      --white:   #FFFFFF;
+      --bg:      #1E5099;
+      --border:  #D8DFE8;
+      --ink:     #0B1929;
+      --mid:     #253B54;
+      --muted:   #4A6580;
+      --green:   #06C755;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { font-size: 18px; scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', -apple-system, sans-serif;
+      background: var(--navy);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      padding-top: 56px;
+    }
+
+    /* ── ナビゲーション（固定） ── */
+    .preview-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: rgba(9, 24, 40, 0.97);
+      backdrop-filter: blur(8px);
+      padding: 10px 16px;
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      flex-wrap: wrap;
+      z-index: 100;
+      border-bottom: 1px solid rgba(196, 152, 58, 0.25);
+    }
+    .preview-nav a {
+      padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 2px;
+      color: rgba(255,255,255,0.5);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+    .preview-nav a:hover { border-color: var(--gold); color: var(--gold); }
+    .preview-nav a.teal { border-color: rgba(26,156,181,0.3); color: rgba(26,156,181,0.7); }
+    .preview-nav a.teal:hover { border-color: var(--teal); color: var(--teal); }
+
+    /* ── セクションラベル ── */
+    .pv-label {
+      max-width: 520px;
+      margin: 64px auto 14px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .pv-label-text {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: var(--gold);
+      white-space: nowrap;
+    }
+    .pv-label-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(196, 152, 58, 0.25);
+    }
+    .pv-label-teal .pv-label-text { color: var(--teal); }
+    .pv-label-teal .pv-label-line { background: rgba(26, 156, 181, 0.25); }
+    .pv-label-warn .pv-label-text { color: #8B5E3C; }
+    .pv-label-warn .pv-label-line { background: rgba(139, 94, 60, 0.25); }
+
+    /* ── カードラッパー ── */
+    .pv-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 0 20px 0;
+    }
+    .pv-wrap .shell {
+      width: 100%;
+      max-width: 520px;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+    }
+
+    /* ── 最後の余白 ── */
+    .pv-end { height: 80px; }
+
+    /* ════════════════════
+       RESULT ① TIME推奨
+    ════════════════════ */
+    .r1-shell {
+      background-color: #FAFAF8;
+      background-image:
+        radial-gradient(circle at 93% 5%,  rgba(196,152,58,0.09)  0%, transparent 42%),
+        radial-gradient(circle at 7%  95%, rgba(26,156,181,0.08)  0%, transparent 42%),
+        linear-gradient(rgba(30,80,153,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,80,153,0.04) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+    }
+    .r1-hero {
+      background: linear-gradient(160deg, #1A3F78 0%, #1E5099 60%, #163A70 100%);
+      padding: 60px 32px 56px;
+      text-align: center;
+      position: relative;
+    }
+    .r1-hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, var(--gold), var(--teal), var(--gold), transparent);
+    }
+    .r1-badge {
+      display: inline-block;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      padding: 5px 16px;
+      border-radius: 2px;
+      margin-bottom: 36px;
+      box-shadow: 0 0 12px rgba(196, 152, 58, 0.2);
+    }
+    .r1-sub {
+      font-size: 12px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.48);
+      letter-spacing: 0.1em;
+      margin-bottom: 14px;
+    }
+    .r1-type {
+      font-size: clamp(32px, 8vw, 44px);
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1.2;
+      margin-bottom: 28px;
+    }
+    .r1-rule {
+      width: 56px;
+      height: 1px;
+      background: rgba(255,255,255,0.25);
+      margin: 0 auto 24px;
+    }
+    .r1-hl {
+      font-size: 14px;
+      font-weight: 300;
+      line-height: 2.1;
+      color: rgba(255,255,255,0.58);
+      white-space: pre-line;
+    }
+    .r-body { padding: 48px 28px 56px; }
+    .r-sec { margin-bottom: 40px; }
+    .r-sec-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: var(--teal);
+      border-left: 2px solid var(--gold);
+      padding-left: 12px;
+      margin-bottom: 16px;
+    }
+    .r-txt { font-size: 16px; line-height: 2.1; color: var(--mid); }
+    .time-card {
+      background: var(--navy);
+      border-radius: 6px;
+      padding: 28px 24px;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .time-card::after {
+      content: 'TIME';
+      position: absolute;
+      bottom: -14px; right: -2px;
+      font-size: 76px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.05);
+      line-height: 1;
+      pointer-events: none;
+    }
+    .tc-ttl {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 20px;
+    }
+    .tc-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      font-size: 15px;
+      line-height: 1.75;
+      color: rgba(255,255,255,0.85);
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .tc-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .tc-marker {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      flex-shrink: 0;
+      margin-top: 7px;
+      box-shadow: 0 0 6px rgba(196,152,58,0.5);
+    }
+    .r-closing {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      text-align: center;
+      line-height: 1.75;
+      margin-bottom: 32px;
+    }
+    .btn-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: var(--green);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 22px 24px;
+      border-radius: 3px;
+      text-decoration: none;
+      margin-bottom: 16px;
+    }
+    .line-logo {
+      width: 24px; height: 24px;
+      background: #fff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .line-logo svg { width: 16px; height: 16px; }
+    .btn-dummy {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 14px;
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ════════════════════
+       RESULT ②③
+    ════════════════════ */
+    .r2-shell, .r3-shell {
+      background-color: #FAFAF8;
+      background-image:
+        radial-gradient(circle at 93% 5%,  rgba(196,152,58,0.09)  0%, transparent 42%),
+        radial-gradient(circle at 7%  95%, rgba(26,156,181,0.08)  0%, transparent 42%),
+        linear-gradient(rgba(30,80,153,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,80,153,0.04) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+    }
+    .r-alt-hero { padding: 56px 32px 52px; text-align: center; }
+    .r2-hero-bg { background: linear-gradient(160deg, #1A3F78 0%, #1A3D7A 100%); border-top: 4px solid var(--teal); }
+    .r3-hero-bg { background: linear-gradient(160deg, #1A0E0A 0%, #2D1A14 100%); border-top: 4px solid #8B5E3C; }
+    .r-alt-badge {
+      display: inline-block;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      padding: 5px 16px;
+      border-radius: 2px;
+      margin-bottom: 28px;
+    }
+    .r-alt-title {
+      font-size: clamp(20px, 5vw, 24px);
+      font-weight: 700;
+      line-height: 1.75;
+      color: var(--white);
+    }
+    .alt-card {
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 24px 20px;
+      margin-bottom: 32px;
+    }
+    .alt-card-ttl {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--teal);
+      margin-bottom: 16px;
+    }
+    .alt-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 16px;
+      color: var(--mid);
+      line-height: 1.75;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .alt-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .send-off {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 2.1;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .sep { height: 1px; background: var(--border); margin: 24px 0; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ 固定ナビゲーション ═══ -->
+<nav class="preview-nav">
+  <a href="#sec-a">① 着実コツコツ型</a>
+  <a href="#sec-b">① 成長志向型</a>
+  <a href="#sec-c">① 本気チャレンジ型</a>
+  <a href="#sec-2" class="teal">② 別アプローチ推奨</a>
+  <a href="#sec-3" class="teal">③ 今は難しい</a>
+</nav>
+
+<!-- ═══ 結果①-A：着実コツコツ型 ═══ -->
+<div id="sec-a">
+  <div class="pv-label">
+    <span class="pv-label-text">結果① — 着実コツコツ型（スコア 8〜16点）</span>
+    <div class="pv-label-line"></div>
+  </div>
+  <div class="pv-wrap">
+    <div class="shell r1-shell">
+      <div class="r1-hero">
+        <div class="r1-badge">RESULT</div>
+        <div class="r1-sub">あなたのタイプは</div>
+        <div class="r1-type">着実コツコツ型</div>
+        <div class="r1-rule"></div>
+        <div class="r1-hl">急がず、着実に。
+それが投資で長く結果を出す人の共通点です。</div>
+      </div>
+      <div class="r-body">
+        <div class="r-sec">
+          <div class="r-sec-lbl">あなたについて</div>
+          <div class="r-txt">最初からすべてを理解しようとしなくていい。一つひとつ丁寧に積み上げていける環境さえあれば、あなたは必ず前に進めます。焦らず自分のペースで学べる場所が、今のあなたには最も合っています。</div>
+        </div>
+        <div class="time-card">
+          <div class="tc-ttl">TIMEをおすすめする理由</div>
+          <div class="tc-item"><div class="tc-marker"></div><span>初心者でも段階的に学べるカリキュラムが整っている</span></div>
+          <div class="tc-item"><div class="tc-marker"></div><span>仲間と一緒に学べるコミュニティがある</span></div>
+          <div class="tc-item"><div class="tc-marker"></div><span>実際のトレードを通じて実践的に経験を積める</span></div>
+        </div>
+        <div class="r-closing">一歩踏み出すことが、すべての始まりです。</div>
+        <a href="#" class="btn-line">
+          <span class="line-logo">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M24 4C12.954 4 4 12.059 4 22c0 6.628 3.942 12.447 9.898 15.895-.44 1.637-1.59 5.941-1.82 6.867-.285 1.136.414 1.12.874.817.36-.247 5.74-3.87 8.073-5.43A22.74 22.74 0 0024 40c11.046 0 20-8.059 20-18S35.046 4 24 4z" fill="#06C755"/>
+            </svg>
+          </span>
+          <span>TIMEについてLINEで詳しく聞く →</span>
+        </a>
+        <div class="btn-dummy">もう一度診断する</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 結果①-B：成長志向型 ═══ -->
+<div id="sec-b">
+  <div class="pv-label">
+    <span class="pv-label-text">結果① — 成長志向型（スコア 17〜24点）</span>
+    <div class="pv-label-line"></div>
+  </div>
+  <div class="pv-wrap">
+    <div class="shell r1-shell">
+      <div class="r1-hero">
+        <div class="r1-badge">RESULT</div>
+        <div class="r1-sub">あなたのタイプは</div>
+        <div class="r1-type">成長志向型</div>
+        <div class="r1-rule"></div>
+        <div class="r1-hl">学んで、動いて、確実に前進する。
+そんなあなたに合った環境があります。</div>
+      </div>
+      <div class="r-body">
+        <div class="r-sec">
+          <div class="r-sec-lbl">あなたについて</div>
+          <div class="r-txt">しっかり理解してから行動したい。知識とスキルを積み上げながら、自分の判断で動けるようになりたい。その姿勢を持っているあなたは、投資で着実に結果を出していける人の典型です。</div>
+        </div>
+        <div class="time-card">
+          <div class="tc-ttl">TIMEをおすすめする理由</div>
+          <div class="tc-item"><div class="tc-marker"></div><span>初心者でも段階的に学べるカリキュラムが整っている</span></div>
+          <div class="tc-item"><div class="tc-marker"></div><span>仲間と一緒に学べるコミュニティがある</span></div>
+          <div class="tc-item"><div class="tc-marker"></div><span>実際のトレードを通じて実践的に経験を積める</span></div>
+        </div>
+        <div class="r-closing">学び続ける人が、最後に結果を手にします。</div>
+        <a href="#" class="btn-line">
+          <span class="line-logo">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M24 4C12.954 4 4 12.059 4 22c0 6.628 3.942 12.447 9.898 15.895-.44 1.637-1.59 5.941-1.82 6.867-.285 1.136.414 1.12.874.817.36-.247 5.74-3.87 8.073-5.43A22.74 22.74 0 0024 40c11.046 0 20-8.059 20-18S35.046 4 24 4z" fill="#06C755"/>
+            </svg>
+          </span>
+          <span>TIMEについてLINEで詳しく聞く →</span>
+        </a>
+        <div class="btn-dummy">もう一度診断する</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 結果①-C：本気チャレンジ型 ═══ -->
+<div id="sec-c">
+  <div class="pv-label">
+    <span class="pv-label-text">結果① — 本気チャレンジ型（スコア 25〜32点）</span>
+    <div class="pv-label-line"></div>
+  </div>
+  <div class="pv-wrap">
+    <div class="shell r1-shell">
+      <div class="r1-hero">
+        <div class="r1-badge">RESULT</div>
+        <div class="r1-sub">あなたのタイプは</div>
+        <div class="r1-type">本気チャレンジ型</div>
+        <div class="r1-rule"></div>
+        <div class="r1-hl">その本気の姿勢が、すでに
+多くの人より一歩先にいる証拠です。</div>
+      </div>
+      <div class="r-body">
+        <div class="r-sec">
+          <div class="r-sec-lbl">あなたについて</div>
+          <div class="r-txt">投資で結果を出す人と出せない人の差は、才能ではありません。「本気で向き合えるかどうか」、ただそれだけです。あなたにはすでにその覚悟があります。あとは、正しい環境と正しい学びがあれば十分です。</div>
+        </div>
+        <div class="time-card">
+          <div class="tc-ttl">TIMEをおすすめする理由</div>
+          <div class="tc-item"><div class="tc-marker"></div><span>初心者でも段階的に学べるカリキュラムが整っている</span></div>
+          <div class="tc-item"><div class="tc-marker"></div><span>仲間と一緒に学べるコミュニティがある</span></div>
+          <div class="tc-item"><div class="tc-marker"></div><span>実際のトレードを通じて実践的に経験を積める</span></div>
+        </div>
+        <div class="r-closing">今すぐ動き出しましょう。</div>
+        <a href="#" class="btn-line">
+          <span class="line-logo">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M24 4C12.954 4 4 12.059 4 22c0 6.628 3.942 12.447 9.898 15.895-.44 1.637-1.59 5.941-1.82 6.867-.285 1.136.414 1.12.874.817.36-.247 5.74-3.87 8.073-5.43A22.74 22.74 0 0024 40c11.046 0 20-8.059 20-18S35.046 4 24 4z" fill="#06C755"/>
+            </svg>
+          </span>
+          <span>今すぐTIMEについてLINEで聞く →</span>
+        </a>
+        <div class="btn-dummy">もう一度診断する</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 結果②：別アプローチ推奨 ═══ -->
+<div id="sec-2">
+  <div class="pv-label pv-label-teal">
+    <span class="pv-label-text">結果② — 別アプローチ推奨（Q2でA「サービスのせいにする」を選択）</span>
+    <div class="pv-label-line"></div>
+  </div>
+  <div class="pv-wrap">
+    <div class="shell r2-shell">
+      <div class="r-alt-hero r2-hero-bg">
+        <div class="r-alt-badge">RESULT</div>
+        <div class="r-alt-title">今の段階では、<br>別の方法から始めることを<br>おすすめします</div>
+      </div>
+      <div class="r-body">
+        <div class="r-sec">
+          <div class="r-sec-lbl">今のあなたへ</div>
+          <div class="r-txt">投資でうまくいかなかったとき、誰かのせいにしたくなる気持ちは自然です。でも、その考え方のままでは、どんな方法を試しても同じ結果になりやすいのが現実です。<br><br>まずは積立NISAなどの少額から始められる長期投資を試してみて、「自分の判断と市場の動きが両方影響する」という感覚を体験するところから始めてみてください。</div>
+        </div>
+        <div class="alt-card">
+          <div class="alt-card-ttl">まず試してみるならこちら</div>
+          <div class="alt-row"><span>📌</span><span>積立NISAなどの長期積立投資 — 少額から無理なく始められる</span></div>
+          <div class="alt-row"><span>📌</span><span>インデックスファンドなどの分散投資 — ほったらかしでも資産が育つ仕組み</span></div>
+        </div>
+        <div class="send-off">考え方が変わったとき、またここに戻ってきてください。<br>その準備ができたとき、TIMEという選択肢もあります。</div>
+        <div class="sep"></div>
+        <div class="btn-dummy">もう一度診断する</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 結果③：今は難しい ═══ -->
+<div id="sec-3">
+  <div class="pv-label pv-label-warn">
+    <span class="pv-label-text">結果③ — 今は投資が難しい（Q1でA「毎月赤字・借金」を選択）</span>
+    <div class="pv-label-line"></div>
+  </div>
+  <div class="pv-wrap">
+    <div class="shell r3-shell">
+      <div class="r-alt-hero r3-hero-bg">
+        <div class="r-alt-badge">RESULT</div>
+        <div class="r-alt-title">今はまず、生活の土台を<br>固めることが優先です</div>
+      </div>
+      <div class="r-body">
+        <div class="r-sec">
+          <div class="r-sec-lbl">今のあなたへ</div>
+          <div class="r-txt">投資は「余裕資金」でやるものです。毎月の収支がマイナスの状態で投資を始めると、損失が出たときに生活そのものが追い詰められるリスクがあります。<br><br>今は投資よりも、収入を増やすか、支出を見直すことに集中する時期です。焦る必要はありません。土台が整ったとき、投資は必ずできます。</div>
+        </div>
+        <div class="alt-card">
+          <div class="alt-card-ttl">今できること</div>
+          <div class="alt-row"><span>💡</span><span>家計の収支を見直して、毎月の黒字を作る</span></div>
+          <div class="alt-row"><span>💡</span><span>まず3ヶ月分の生活費を貯金として確保する</span></div>
+          <div class="alt-row"><span>💡</span><span>投資の基礎知識を無料で勉強しておく</span></div>
+        </div>
+        <div class="send-off">半年後・1年後に、またぜひ診断を受けにきてください。<br>応援しています。</div>
+        <div class="sep"></div>
+        <div class="btn-dummy">もう一度診断する</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pv-end"></div>
+</body>
+</html>

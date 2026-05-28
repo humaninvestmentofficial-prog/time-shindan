@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>投資診断ツール | TIME</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── デザイントークン ── */
+    :root {
+      --navy:    #1A3F78;   /* メインの深紺 */
+      --navy-hi: #1E5099;   /* 少し明るい紺 */
+      --teal:    #1A9CB5;   /* ティール（青緑アクセント） */
+      --teal-hi: #22B8D0;   /* 明るいティール */
+      --gold:    #C4983A;   /* ゴールド */
+      --gold-hi: #D4AE52;   /* 明るいゴールド */
+      --white:   #FFFFFF;
+      --bg:      #1E5099;   /* PC背景（紺） */
+      --border:  #D8DFE8;   /* ボーダー */
+      --ink:     #0B1929;   /* メインテキスト */
+      --mid:     #253B54;   /* サブテキスト */
+      --muted:   #4A6580;   /* 補助テキスト */
+      --green:   #06C755;   /* LINEボタン */
+    }
+
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html { font-size: 18px; scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── スクリーン制御 ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* PC: 中央カード表示 */
+    @media (min-width: 768px) {
+      body { background: var(--navy); }
+      .screen.active {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        padding: 48px 20px 80px;
+      }
+      #screen-top.active {
+        align-items: center;
+        padding: 40px 20px;
+      }
+      .shell {
+        width: 100%;
+        max-width: 520px;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5);
+      }
+    }
+    .shell { width: 100%; }
+
+    /* ════════════════════
+       TOP
+    ════════════════════ */
+    .top-wrap {
+      min-height: 100vh;
+      background: linear-gradient(160deg, #1A3F78 0%, #1E5099 55%, #163A70 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 72px 40px 64px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    /* 上下に薄いグラデーションのみ（装飾として最小限） */
+    .top-wrap::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    /* 下部のゴールド×ティールライン */
+    .top-wrap::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--teal), var(--gold), transparent);
+      opacity: 0.6;
+    }
+
+    /* 右上ゴールドグロー */
+    .top-glow-gold {
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 360px; height: 360px;
+      background: radial-gradient(circle, rgba(196,152,58,0.13) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    /* 左下ティールグロー */
+    .top-glow-teal {
+      position: absolute;
+      bottom: -60px; left: -60px;
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(26,156,181,0.1) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    /* 四隅のゴールドコーナー装飾 */
+    .corner {
+      position: absolute;
+      width: 40px; height: 40px;
+      pointer-events: none;
+    }
+    .corner-tl { top: 24px; left: 24px;
+      border-top: 1.5px solid rgba(196,152,58,0.65);
+      border-left: 1.5px solid rgba(196,152,58,0.65); }
+    .corner-tr { top: 24px; right: 24px;
+      border-top: 1.5px solid rgba(196,152,58,0.65);
+      border-right: 1.5px solid rgba(196,152,58,0.65); }
+    .corner-bl { bottom: 24px; left: 24px;
+      border-bottom: 1.5px solid rgba(196,152,58,0.65);
+      border-left: 1.5px solid rgba(196,152,58,0.65); }
+    .corner-br { bottom: 24px; right: 24px;
+      border-bottom: 1.5px solid rgba(196,152,58,0.65);
+      border-right: 1.5px solid rgba(196,152,58,0.65); }
+    /* コーナーの内側にも小さなL字（二重感） */
+    .corner-tl::after { content: ''; position: absolute;
+      top: 6px; left: 6px; width: 14px; height: 14px;
+      border-top: 1px solid rgba(196,152,58,0.3);
+      border-left: 1px solid rgba(196,152,58,0.3); }
+    .corner-tr::after { content: ''; position: absolute;
+      top: 6px; right: 6px; width: 14px; height: 14px;
+      border-top: 1px solid rgba(196,152,58,0.3);
+      border-right: 1px solid rgba(196,152,58,0.3); }
+    .corner-bl::after { content: ''; position: absolute;
+      bottom: 6px; left: 6px; width: 14px; height: 14px;
+      border-bottom: 1px solid rgba(196,152,58,0.3);
+      border-left: 1px solid rgba(196,152,58,0.3); }
+    .corner-br::after { content: ''; position: absolute;
+      bottom: 6px; right: 6px; width: 14px; height: 14px;
+      border-bottom: 1px solid rgba(196,152,58,0.3);
+      border-right: 1px solid rgba(196,152,58,0.3); }
+
+    /* コンテンツを装飾の前面に */
+    .top-eyebrow, .top-logo, .top-rule, .top-h,
+    .top-p, .top-meta, .btn-start, .top-note {
+      position: relative;
+      z-index: 1;
+    }
+
+    .top-eyebrow {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      color: rgba(255, 255, 255, 0.88);
+      margin-bottom: 16px;
+    }
+
+    .top-logo {
+      font-size: clamp(30px, 8vw, 42px);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--white);
+      line-height: 1.2;
+      margin-bottom: 28px;
+    }
+
+    .top-rule {
+      width: 48px;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.22);
+      margin: 0 auto 32px;
+    }
+
+    .top-h {
+      font-size: clamp(20px, 5vw, 26px);
+      font-weight: 500;
+      line-height: 1.75;
+      color: var(--white);
+      margin-bottom: 16px;
+    }
+
+    .top-p {
+      font-size: 16px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.9);
+      line-height: 1.95;
+      margin-bottom: 44px;
+    }
+
+    .top-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      margin-bottom: 44px;
+    }
+    .top-meta-item { text-align: center; }
+    .top-meta-n {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .top-meta-l {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      color: rgba(255, 255, 255, 0.78);
+    }
+    .top-meta-sep {
+      width: 1px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-start {
+      display: block;
+      width: 100%;
+      max-width: 300px;
+      padding: 22px 24px;
+      background: linear-gradient(135deg, #B8882E 0%, #D4AA52 50%, #C49A3A 100%);
+      color: var(--white);
+      border: none;
+      border-radius: 3px;
+      font-family: inherit;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+      margin: 0 auto;
+      box-shadow: 0 4px 24px rgba(196, 152, 58, 0.35);
+    }
+    .btn-start:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(196, 152, 58, 0.45); }
+    .btn-start:active { transform: translateY(0); opacity: 0.85; }
+
+    .top-note {
+      font-size: 13px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.72);
+      margin-top: 20px;
+    }
+
+    /* ════════════════════
+       QUESTION
+    ════════════════════ */
+    .q-shell {
+      background-color: #FAFAF8;
+      background-image:
+        radial-gradient(circle at 93% 5%,  rgba(196,152,58,0.09)  0%, transparent 42%),
+        radial-gradient(circle at 7%  95%, rgba(26,156,181,0.08)  0%, transparent 42%),
+        linear-gradient(rgba(30,80,153,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,80,153,0.04) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+      min-height: 100vh;
+    }
+
+    /* 上部ヘッダー（深紺 + ティールアクセントライン） */
+    .q-header {
+      background: linear-gradient(180deg, #1A3F78 0%, #1E5099 100%);
+      border-top: 3px solid var(--teal);
+      padding: 18px 28px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .q-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+    .q-step {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    .q-pct {
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.82);
+    }
+    .q-track {
+      height: 5px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .q-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal), var(--teal-hi));
+      border-radius: 5px;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 8px rgba(26, 156, 181, 0.5);
+    }
+
+    /* 質問本体 */
+    .q-body { padding: 48px 28px 72px; position: relative; overflow: hidden; }
+    @media (min-width: 768px) { .q-body { padding: 56px 44px 80px; } }
+
+    /* 右上の薄い大きな番号（装飾） */
+    .q-deco-num {
+      position: absolute;
+      right: -8px; top: -10px;
+      font-size: clamp(110px, 28vw, 160px);
+      font-weight: 700;
+      color: rgba(15, 39, 68, 0.055);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .q-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .q-text {
+      font-size: clamp(22px, 5.5vw, 30px);
+      font-weight: 700;
+      line-height: 1.7;
+      color: var(--ink);
+      margin-bottom: 44px;
+      white-space: pre-line;
+    }
+
+    /* 選択肢 */
+    .choices { display: flex; flex-direction: column; gap: 8px; }
+
+    .choice {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+      min-height: 78px;
+    }
+    .choice:hover {
+      border-color: var(--teal);
+      box-shadow: inset 3px 0 0 var(--teal);
+      background: #F0FAFE;
+    }
+    .choice:active { background: #E0F5FA; }
+
+    .ch-lbl {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 58px;
+      flex-shrink: 0;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      border-right: 1px solid var(--border);
+      transition: background 0.18s, color 0.18s, border-color 0.18s;
+    }
+    .choice:hover .ch-lbl {
+      background: var(--teal);
+      color: var(--white);
+      border-right-color: var(--teal);
+    }
+
+    .ch-txt {
+      padding: 18px 20px;
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--mid);
+      display: flex;
+      align-items: center;
+      flex: 1;
+      transition: color 0.18s;
+    }
+    .choice:hover .ch-txt { color: var(--ink); }
+
+    /* 質問フェードイン */
+    @keyframes qFade {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .q-anim { animation: qFade 0.28s ease-out; }
+
+    /* ════════════════════
+       RESULT ① TIME推奨
+    ════════════════════ */
+    .r1-shell {
+      background-color: #FAFAF8;
+      background-image:
+        radial-gradient(circle at 93% 5%,  rgba(196,152,58,0.09)  0%, transparent 42%),
+        radial-gradient(circle at 7%  95%, rgba(26,156,181,0.08)  0%, transparent 42%),
+        linear-gradient(rgba(30,80,153,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,80,153,0.04) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+      min-height: 100vh;
+    }
+
+    .r1-hero {
+      background: linear-gradient(160deg, #1A3F78 0%, #1E5099 60%, #163A70 100%);
+      padding: 60px 32px 56px;
+      text-align: center;
+      position: relative;
+    }
+    /* 上部のゴールドアクセントライン */
+    .r1-hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, var(--gold), var(--teal), var(--gold), transparent);
+    }
+
+    .r1-badge {
+      display: inline-block;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      padding: 5px 16px;
+      border-radius: 2px;
+      margin-bottom: 36px;
+      box-shadow: 0 0 12px rgba(196, 152, 58, 0.2);
+    }
+
+    .r1-sub {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+      letter-spacing: 0.1em;
+      margin-bottom: 14px;
+    }
+
+    .r1-type {
+      font-size: clamp(32px, 8vw, 44px);
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1.2;
+      margin-bottom: 28px;
+    }
+
+    .r1-rule {
+      width: 56px;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.25);
+      margin: 0 auto 24px;
+    }
+
+    .r1-hl {
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 2.1;
+      color: rgba(255, 255, 255, 0.92);
+      white-space: pre-line;
+    }
+
+    /* 本文 */
+    .r-body { padding: 48px 28px 64px; }
+    @media (min-width: 768px) { .r-body { padding: 52px 44px 72px; } }
+
+    .r-sec { margin-bottom: 40px; }
+    .r-sec-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: var(--teal);
+      border-left: 2px solid var(--gold);
+      padding-left: 12px;
+      margin-bottom: 16px;
+    }
+    .r-txt {
+      font-size: 16px;
+      line-height: 2.1;
+      color: var(--mid);
+    }
+
+    /* TIMEカード（紺背景で強調） */
+    .time-card {
+      background: var(--navy);
+      border-radius: 6px;
+      padding: 28px 24px;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    /* 右下に薄い装飾テキスト */
+    .time-card::after {
+      content: 'TIME';
+      position: absolute;
+      bottom: -14px; right: -2px;
+      font-size: 76px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: rgba(255, 255, 255, 0.05);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+    .tc-ttl {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: rgba(255, 255, 255, 0.88);
+      margin-bottom: 20px;
+    }
+    .tc-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      font-size: 15px;
+      line-height: 1.75;
+      color: rgba(255, 255, 255, 0.85);
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .tc-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .tc-marker {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      flex-shrink: 0;
+      margin-top: 7px;
+      box-shadow: 0 0 6px rgba(196, 152, 58, 0.5);
+    }
+
+    .r-closing {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      text-align: center;
+      line-height: 1.75;
+      margin-bottom: 32px;
+    }
+
+    /* LINEボタン */
+    .btn-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: var(--green);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 22px 24px;
+      border-radius: 3px;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s;
+      margin-bottom: 16px;
+    }
+    .btn-line:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .line-logo {
+      width: 24px;
+      height: 24px;
+      background: #fff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .line-logo svg { width: 16px; height: 16px; }
+
+    .btn-retry {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 14px;
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 400;
+      cursor: pointer;
+      text-align: center;
+      transition: color 0.2s;
+    }
+    .btn-retry:hover { color: var(--mid); }
+
+    /* ════════════════════
+       RESULT ②③
+    ════════════════════ */
+    .r2-shell, .r3-shell {
+      background-color: #FAFAF8;
+      background-image:
+        radial-gradient(circle at 93% 5%,  rgba(196,152,58,0.09)  0%, transparent 42%),
+        radial-gradient(circle at 7%  95%, rgba(26,156,181,0.08)  0%, transparent 42%),
+        linear-gradient(rgba(30,80,153,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,80,153,0.04) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+      min-height: 100vh;
+    }
+
+    .r-alt-hero {
+      padding: 56px 32px 52px;
+      text-align: center;
+    }
+    .r2-hero-bg { background: linear-gradient(160deg, #1A3F78 0%, #1A3D7A 100%); border-top: 4px solid var(--teal); }
+    .r3-hero-bg { background: linear-gradient(160deg, #1A0E0A 0%, #2D1A14 100%); border-top: 4px solid #8B5E3C; }
+
+    .r-alt-badge {
+      display: inline-block;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      padding: 5px 16px;
+      border-radius: 2px;
+      margin-bottom: 28px;
+    }
+
+    .r-alt-title {
+      font-size: clamp(20px, 5vw, 24px);
+      font-weight: 700;
+      line-height: 1.75;
+      color: var(--white);
+    }
+
+    /* 共通パーツ */
+    .alt-card {
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 24px 20px;
+      margin-bottom: 32px;
+    }
+    .alt-card-ttl {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--teal);
+      margin-bottom: 16px;
+    }
+    .alt-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 16px;
+      color: var(--mid);
+      line-height: 1.75;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .alt-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .send-off {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 2.1;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .sep {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+    }
+
+    /* 画面遷移：シンプルフェードイン */
+    @keyframes screenFade {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .screen.active .shell,
+    .screen.active .top-wrap,
+    .screen.active .q-shell,
+    .screen.active .r1-shell,
+    .screen.active .r2-shell,
+    .screen.active .r3-shell {
+      animation: screenFade 0.3s ease-out;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════ TOP ════ -->
+<div id="screen-top" class="screen active">
+  <div class="shell">
+    <div class="top-wrap">
+      <!-- 装飾レイヤー -->
+      <div class="top-glow-gold" aria-hidden="true"></div>
+      <div class="top-glow-teal" aria-hidden="true"></div>
+      <div class="corner corner-tl" aria-hidden="true"></div>
+      <div class="corner corner-tr" aria-hidden="true"></div>
+      <div class="corner corner-bl" aria-hidden="true"></div>
+      <div class="corner corner-br" aria-hidden="true"></div>
+      <!-- コンテンツ -->
+      <div class="top-eyebrow">投資スクールTIME</div>
+      <div class="top-logo">投資診断ツール</div>
+      <div class="top-rule"></div>
+      <div class="top-h">あなたに合った投資スタイルを<br>10問で診断します</div>
+      <div class="top-p">質問に答えるだけで、今のあなたに最適な<br>投資の始め方がわかります。専門知識は不要です。</div>
+      <div class="top-meta">
+        <div class="top-meta-item">
+          <div class="top-meta-n">10問</div>
+          <div class="top-meta-l">QUESTIONS</div>
+        </div>
+        <div class="top-meta-sep"></div>
+        <div class="top-meta-item">
+          <div class="top-meta-n">約2分</div>
+          <div class="top-meta-l">MINUTES</div>
+        </div>
+        <div class="top-meta-sep"></div>
+        <div class="top-meta-item">
+          <div class="top-meta-n">無料</div>
+          <div class="top-meta-l">FREE</div>
+        </div>
+      </div>
+      <button class="btn-start" onclick="startQuiz()">診断をはじめる &nbsp;→</button>
+      <div class="top-note">※ 個人情報の入力は不要です</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ QUESTION ════ -->
+<div id="screen-question" class="screen">
+  <div class="shell q-shell">
+    <div class="q-header">
+      <div class="q-header-row">
+        <span class="q-step" id="q-step">Q1 / 10</span>
+        <span class="q-pct" id="q-pct">0%</span>
+      </div>
+      <div class="q-track">
+        <div class="q-fill" id="q-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="q-body">
+      <div class="q-deco-num" id="q-deco" aria-hidden="true">01</div>
+      <div class="q-num q-anim" id="q-label">QUESTION 01</div>
+      <div class="q-text q-anim" id="q-text"></div>
+      <div class="choices q-anim" id="q-choices"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ RESULT ① TIME推奨 ════ -->
+<div id="screen-result1" class="screen">
+  <div class="shell r1-shell">
+    <div class="r1-hero">
+      <div class="r1-badge">RESULT</div>
+      <div class="r1-sub">あなたのタイプは</div>
+      <div class="r1-type" id="r1-type"></div>
+      <div class="r1-rule"></div>
+      <div class="r1-hl" id="r1-hl"></div>
+    </div>
+    <div class="r-body">
+      <div class="r-sec">
+        <div class="r-sec-lbl">あなたについて</div>
+        <div class="r-txt" id="r1-desc"></div>
+      </div>
+      <div class="time-card">
+        <div class="tc-ttl">TIMEをおすすめする理由</div>
+        <div class="tc-item"><div class="tc-marker"></div><span>初心者でも段階的に学べるカリキュラムが整っている</span></div>
+        <div class="tc-item"><div class="tc-marker"></div><span>仲間と一緒に学べるコミュニティがある</span></div>
+        <div class="tc-item"><div class="tc-marker"></div><span>実際のトレードを通じて実践的に経験を積める</span></div>
+      </div>
+      <div class="r-closing" id="r1-closing"></div>
+      <a href="#LINE_URL_HERE" class="btn-line">
+        <span class="line-logo">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M24 4C12.954 4 4 12.059 4 22c0 6.628 3.942 12.447 9.898 15.895-.44 1.637-1.59 5.941-1.82 6.867-.285 1.136.414 1.12.874.817.36-.247 5.74-3.87 8.073-5.43A22.74 22.74 0 0024 40c11.046 0 20-8.059 20-18S35.046 4 24 4z" fill="#06C755"/>
+          </svg>
+        </span>
+        <span id="r1-line-text">TIMEについてLINEで詳しく聞く →</span>
+      </a>
+      <button class="btn-retry" onclick="retryQuiz()">もう一度診断する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ RESULT ② 別アプローチ ════ -->
+<div id="screen-result2" class="screen">
+  <div class="shell r2-shell">
+    <div class="r-alt-hero r2-hero-bg">
+      <div class="r-alt-badge">RESULT</div>
+      <div class="r-alt-title">今の段階では、<br>別の方法から始めることを<br>おすすめします</div>
+    </div>
+    <div class="r-body">
+      <div class="r-sec">
+        <div class="r-sec-lbl">今のあなたへ</div>
+        <div class="r-txt">投資でうまくいかなかったとき、誰かのせいにしたくなる気持ちは自然です。でも、その考え方のままでは、どんな方法を試しても同じ結果になりやすいのが現実です。<br><br>まずは積立NISAなどの少額から始められる長期投資を試してみて、「自分の判断と市場の動きが両方影響する」という感覚を体験するところから始めてみてください。</div>
+      </div>
+      <div class="alt-card">
+        <div class="alt-card-ttl">まず試してみるならこちら</div>
+        <div class="alt-row"><span>📌</span><span>積立NISAなどの長期積立投資 — 少額から無理なく始められる</span></div>
+        <div class="alt-row"><span>📌</span><span>インデックスファンドなどの分散投資 — ほったらかしでも資産が育つ仕組み</span></div>
+      </div>
+      <div class="send-off">考え方が変わったとき、またここに戻ってきてください。<br>その準備ができたとき、TIMEという選択肢もあります。</div>
+      <div class="sep"></div>
+      <button class="btn-retry" onclick="retryQuiz()">もう一度診断する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ RESULT ③ 今は難しい ════ -->
+<div id="screen-result3" class="screen">
+  <div class="shell r3-shell">
+    <div class="r-alt-hero r3-hero-bg">
+      <div class="r-alt-badge">RESULT</div>
+      <div class="r-alt-title">今はまず、生活の土台を<br>固めることが優先です</div>
+    </div>
+    <div class="r-body">
+      <div class="r-sec">
+        <div class="r-sec-lbl">今のあなたへ</div>
+        <div class="r-txt">投資は「余裕資金」でやるものです。毎月の収支がマイナスの状態で投資を始めると、損失が出たときに生活そのものが追い詰められるリスクがあります。<br><br>今は投資よりも、収入を増やすか、支出を見直すことに集中する時期です。焦る必要はありません。土台が整ったとき、投資は必ずできます。</div>
+      </div>
+      <div class="alt-card">
+        <div class="alt-card-ttl">今できること</div>
+        <div class="alt-row"><span>💡</span><span>家計の収支を見直して、毎月の黒字を作る</span></div>
+        <div class="alt-row"><span>💡</span><span>まず3ヶ月分の生活費を貯金として確保する</span></div>
+        <div class="alt-row"><span>💡</span><span>投資の基礎知識を無料で勉強しておく</span></div>
+      </div>
+      <div class="send-off">半年後・1年後に、またぜひ診断を受けにきてください。<br>応援しています。</div>
+      <div class="sep"></div>
+      <button class="btn-retry" onclick="retryQuiz()">もう一度診断する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── 質問データ ── */
+const Qs=[
+  {text:"今の毎月の家計（お金の流れ）を\n正直に教えてください",opts:["毎月赤字で、カードや借金で生活費を補っている","ギリギリ収支はプラスだが、余裕はほとんどない","毎月少し余裕があり、貯金もできている","余裕があって、投資に回せる資金も確保できている"]},
+  {text:"投資でうまくいかなかったとき、\nあなたはどう考えるタイプですか？",opts:["教えてくれた人や、加入したサービスのせいだと思う","自分の判断と、市場の動きの両方が影響したと思う","原因を分析して、次に活かしたい","投資は自己責任。うまくいかない理由を自分で探す"]},
+  {text:"投資やトレードを学びたい理由として、\n一番近いのはどれですか？",opts:["老後の不安を解消したい","副収入を作って、生活の余裕を増やしたい","資産を増やして、選択肢の多い生き方をしたい","スキルを身につけて、お金に縛られない生活を作りたい"]},
+  {text:"あなたの年齢を教えてください",opts:["40代以下","50代","60代","70代","80代以上"]},
+  {text:"毎月、学習や投資に使える時間は\nどのくらいですか？",opts:["ほとんど時間が取れない（週1時間未満）","週に1〜2時間くらいなら確保できる","週に3〜5時間くらい使える","毎日でも時間を作れる"]},
+  {text:"仲間や先輩から学ぶことについて、\nどう思いますか？",opts:["できれば一人でやりたい","基本は自分で学んで、わからないときだけ聞く感じがいい","仲間がいる環境の方が続けやすいと思う","切磋琢磨できるコミュニティは理想的だと思う"]},
+  {text:"成果が出るまでの期間として、\n現実的に継続できそうなのはどのくらいですか？",opts:["3ヶ月くらい","半年くらい","1年以上は続けられる","結果が出るまで何年でも続ける"]},
+  {text:"100万円を預けていたら、\nある日80万円になっていました。どうしますか？",opts:["不安になって引き出してしまうと思う","焦るけど、少し様子を見る","原因を考えて、対応策を探す","学びのチャンスだと思って分析する"]},
+  {text:"日本の株式市場（日経平均など）について、\nどのくらい興味がありますか？",opts:["あまり興味がない","名前は知っているが、よくわからない","少し気になっている","ぜひ学んでみたい"]},
+  {text:"投資の知識やスキルを身につけることについて、\nどう思いますか？",opts:["できれば手間をかけずに増やしたい","必要な分だけ覚えられれば十分","しっかり理解してから動きたい","知識・スキルこそが一番の財産だと思う"]}
+];
+
+/* ── 結果データ ── */
+const R={
+  A:{type:"着実コツコツ型",hl:"急がず、着実に。\nそれが投資で長く結果を出す人の共通点です。",desc:"最初からすべてを理解しようとしなくていい。一つひとつ丁寧に積み上げていける環境さえあれば、あなたは必ず前に進めます。焦らず自分のペースで学べる場所が、今のあなたには最も合っています。",closing:"一歩踏み出すことが、すべての始まりです。",btn:"TIMEについてLINEで詳しく聞く →"},
+  B:{type:"成長志向型",hl:"学んで、動いて、確実に前進する。\nそんなあなたに合った環境があります。",desc:"しっかり理解してから行動したい。知識とスキルを積み上げながら、自分の判断で動けるようになりたい。その姿勢を持っているあなたは、投資で着実に結果を出していける人の典型です。",closing:"学び続ける人が、最後に結果を手にします。",btn:"TIMEについてLINEで詳しく聞く →"},
+  C:{type:"本気チャレンジ型",hl:"その本気の姿勢が、すでに\n多くの人より一歩先にいる証拠です。",desc:"投資で結果を出す人と出せない人の差は、才能ではありません。「本気で向き合えるかどうか」、ただそれだけです。あなたにはすでにその覚悟があります。あとは、正しい環境と正しい学びがあれば十分です。",closing:"今すぐ動き出しましょう。",btn:"今すぐTIMEについてLINEで聞く →"}
+};
+
+let qi=0,score=0,q1ans=-1,q2ans=-1;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+function startQuiz(){qi=0;score=0;q1ans=-1;q2ans=-1;show('screen-question');render()}
+
+function render(){
+  const q=Qs[qi],n=qi+1,pct=Math.round(qi/Qs.length*100);
+  document.getElementById('q-step').textContent=`Q${n} / ${Qs.length}`;
+  document.getElementById('q-pct').textContent=`${pct}%`;
+  document.getElementById('q-fill').style.width=`${pct}%`;
+  document.getElementById('q-label').textContent=`QUESTION ${String(n).padStart(2,'0')}`;
+  document.getElementById('q-deco').textContent=String(n).padStart(2,'0');
+  document.getElementById('q-text').textContent=q.text;
+
+  /* アニメーションをリセットして再実行 */
+  ['q-label','q-text','q-choices'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.remove('q-anim');void el.offsetWidth;el.classList.add('q-anim');
+  });
+
+  const el=document.getElementById('q-choices');
+  el.innerHTML='';
+  const lbls=['A','B','C','D','E'];
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='choice';
+    btn.innerHTML=`<span class="ch-lbl">${lbls[i]}</span><span class="ch-txt">${opt}</span>`;
+    btn.onclick=()=>answer(i);
+    el.appendChild(btn);
+  });
+}
+
+function answer(i){
+  if(qi===0)q1ans=i;
+  if(qi===1)q2ans=i;
+  if(qi>=2)score+=(i+1); /* Q3〜Q10のみスコア加算 */
+  qi++;
+  if(qi>=Qs.length)result();
+  else render();
+}
+
+function result(){
+  if(q1ans===0){show('screen-result3');return} /* 赤字・借金 → 生活土台優先 */
+  if(q2ans===0){show('screen-result2');return} /* 他責思考 → 別アプローチ */
+  const d=score<=16?R.A:score<=24?R.B:R.C;
+  document.getElementById('r1-type').textContent=d.type;
+  document.getElementById('r1-hl').textContent=d.hl;
+  document.getElementById('r1-desc').textContent=d.desc;
+  document.getElementById('r1-closing').textContent=d.closing;
+  document.getElementById('r1-line-text').textContent=d.btn;
+  show('screen-result1');
+}
+
+function retryQuiz(){show('screen-top')}
+</script>
+</body>
+</html>
