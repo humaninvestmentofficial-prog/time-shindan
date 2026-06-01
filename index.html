@@ -591,6 +591,26 @@
       margin-bottom: 8px;
     }
 
+    /* PCのみ表示するLINEお問い合わせ案内 */
+    .pc-note {
+      display: none;
+    }
+    @media (min-width: 768px) {
+      .pc-note {
+        display: block;
+        font-size: 15px;
+        color: var(--mid);
+        line-height: 1.9;
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 8px;
+        padding: 16px 20px;
+        background: rgba(26, 156, 181, 0.06);
+        border-radius: 4px;
+        border: 1px solid rgba(26, 156, 181, 0.2);
+      }
+    }
+
     .btn-retry {
       display: block;
       width: 100%;
@@ -830,7 +850,7 @@
         <div class="tc-item"><div class="tc-marker"></div><span id="r1-type-msg"></span></div>
       </div>
       <div class="r-closing" id="r1-closing"></div>
-      <a href="https://liff.line.me/2009908954-qg2zegME?unique_key=myM3PD&ts=1780278066" class="btn-line">
+      <a href="https://liff.line.me/2009908954-qg2zegME?unique_key=myM3PD&amp;ts=1780278066" target="_blank" rel="noopener" class="btn-line">
         <span class="line-logo">
           <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M24 4C12.954 4 4 12.059 4 22c0 6.628 3.942 12.447 9.898 15.895-.44 1.637-1.59 5.941-1.82 6.867-.285 1.136.414 1.12.874.817.36-.247 5.74-3.87 8.073-5.43A22.74 22.74 0 0024 40c11.046 0 20-8.059 20-18S35.046 4 24 4z" fill="#06C755"/>
@@ -839,6 +859,7 @@
         <span id="r1-line-text">限定20名のTIMEを申し込む</span>
       </a>
       <p class="btn-note">※枠が満員になった場合はご案内できない可能性がございます。ご了承ください。</p>
+      <p class="pc-note">PCで診断された方でTIMEお申込み希望の方は<br>特別無料セミナーLINEからお問い合わせください。</p>
       <button class="btn-retry" onclick="retryQuiz()">もう一度診断する</button>
     </div>
   </div>
